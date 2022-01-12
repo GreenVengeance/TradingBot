@@ -11,19 +11,14 @@ import src.T_ as T_
 def cleanup_dataframe_for_print(dataframe):
     pd.set_option('expand_frame_repr', False)
 
-    # filter_date = "09/01/22"
-    # filter_date = datetime.strptime(filter_date, '%d/%m/%y')
-    # dataframe = dataframe[dataframe.date.between(filter_date, (filter_date + timedelta(days=1)))]
-    # dataframe = dataframe[dataframe['date'] > filter_date]
-
     if 'close_time' in dataframe.columns:
         dataframe.pop('close_time')
     if 'trade_number' in dataframe.columns:
         dataframe.pop('trade_number')
     if 'asset_volume' in dataframe.columns:
         dataframe.pop('asset_volume')
-    # if '%of_run' in dataframe.columns:
-    # dataframe.pop('%of_run')
+    if '%of_run' in dataframe.columns:
+        dataframe.pop('%of_run')
     if 'esa_C' in dataframe.columns:
         dataframe.pop('esa_C')
     if 'd_C' in dataframe.columns:
@@ -239,7 +234,6 @@ def main():
             print("\nResults: " + timeframes[i]['time'])
             df = cleanup_dataframe_for_print(df)
             print(df)
-
 
 
     except Exception as e:

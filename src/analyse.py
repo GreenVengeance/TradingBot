@@ -73,7 +73,6 @@ def cleanup_dataframe(current_timeframe, main_timeframe):
     """
     return dataframe
 
-
 def create_multilevel_dataframe():
     day = "08/01/22"
     var = {
@@ -123,7 +122,7 @@ def get_multilevel_dataframe(timeframes, main_timeframe):
 
             current_df = cleanup_dataframe(timeframes[i], main_timeframe)
             current_df = filter_date_1_day(current_df, day)
-            # TODO:
+            #TODO:
 
             print("\nResults: " + current_timeframe)
             print(current_df)
