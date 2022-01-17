@@ -21,8 +21,8 @@ def get_current_BTC():
 def create_dataFrame(coin, timeframe, start_date, end_date):
     candles = client.get_historical_klines(symbol=coin, interval=timeframe, start_str=start_date, end_str=end_date)
     dataframe = df(candles,
-                   columns=['date', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'asset_volume',
-                            'trade_number', 'taker_buy_base', 'taker_buy_quote', 'can_be_ignored'])
+                   columns=['date', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'asset_volume', 'trade_number',
+                            'taker_buy_base', 'taker_buy_quote', 'can_be_ignored'])
     # cleanup dataframe:
     dataframe.pop('taker_buy_base')
     dataframe.pop('taker_buy_quote')
@@ -61,7 +61,7 @@ def format_datetime(date):
 
 
 def download_ALL_historical_data():
-    start_date = '31 Dec, 2021'
+    start_date = '31 Dec, 2018'
     end_date = format_datetime(datetime.now())
 
     for i in range(len(timeframes)):
@@ -77,8 +77,7 @@ def update_historical_data():
         time_of_second_last_row = format_datetime(old_dataframe['date'].iloc[second_last_row])
 
         old_dataframe = old_dataframe[:second_last_row]
-        new_dataframe = create_dataFrame(coin, timeframes[i]['time'], time_of_second_last_row,
-                                         format_datetime(datetime.now()))
+        new_dataframe = create_dataFrame(coin, timeframes[i]['time'], time_of_second_last_row, format_datetime(datetime.now()))
         merged_dataframe = pd.concat([old_dataframe, new_dataframe]).reset_index(drop=True)
         if timeframes[i]['time'] == "1m":
             print("Skip 1m")
@@ -87,7 +86,7 @@ def update_historical_data():
         merged_dataframe["id"] = merged_dataframe.index
 
         merged_dataframe.to_feather(timeframes[i]['file'])
-        print('Success update_historical_data for: ' + timeframes[i]['time'])
+        print('--Success update_historical_data for: ' + timeframes[i]['time'])
 
 
 def update_historical_data_reverse(day):
@@ -106,16 +105,59 @@ def update_historical_data_reverse(day):
         # merged_dataframe = func.calculate_columns_main(merged_dataframe, old_dataframe.shape[0])
 
         merged_dataframe.to_feather(timeframes[i]['file'])
-        print('Success update_hist_data_reverse for: ' + timeframes[i]['time'] + " first Date:",
+        print('--Success update_hist_data_reverse for: ' + timeframes[i]['time'] + " first Date:",
               merged_dataframe['date'].iloc[0])
+
+
+def reformate_date_column():
+    for i in range(len(timeframes)):
+        current_timeframe = timeframes[i]['time']
+        if current_timeframe == "1d" or current_timeframe == "12h" or current_timeframe == "8h" \
+                or current_timeframe == "6h" or current_timeframe == "4h" or current_timeframe == "2h":
+            df = pd.read_feather(timeframes[i]['file'])
+
+            for j in range(0, df.shape[0]):
+                list = str(df.loc[j, "date"]).split()
+                if current_timeframe == "1d" and list[1] == '02:00:00':
+                    df.loc[j, "date"] -= timedelta(hours=1)
+
+                if current_timeframe == "12h" and (list[1] == '02:00:00' or list[1] == '14:00:00'):
+                    df.loc[j, "date"] -= timedelta(hours=1)
+
+                if current_timeframe == "8h" and (list[1] == '02:00:00' or list[1] == '10:00:00' or list[1] == '18:00:00'):
+                    df.loc[j, "date"] -= timedelta(hours=1)
+
+                if current_timeframe == "6h" and (
+                        list[1] == '02:00:00' or list[1] == '08:00:00' or list[1] == '14:00:00' or list[1] == '20:00:00'):
+                    df.loc[j, "date"] -= timedelta(hours=1)
+
+                if current_timeframe == "4h" and (
+                        list[1] == '02:00:00' or list[1] == '06:00:00' or list[1] == '10:00:00' or list[1] == '14:00:00' or list[
+                    1] == '18:00:00' or list[1] == '22:00:00'):
+                    df.loc[j, "date"] -= timedelta(hours=1)
+
+                if current_timeframe == "2h" and (
+                        list[1] == '02:00:00' or list[1] == '04:00:00' or list[1] == '06:00:00' or list[1] == '08:00:00' or list[
+                    1] == '10:00:00' or list[1] == '12:00:00' or list[1] == '14:00:00' or list[1] == '16:00:00' or list[
+                            1] == '18:00:00' or list[1] == '20:00:00' or list[1] == '22:00:00' or list[1] == '00:00:00'):
+                    df.loc[j, "date"] -= timedelta(hours=1)
+
+            print('--Success reformate_date_column for: ' + current_timeframe)
+            df.to_feather(timeframes[i]['file'])
 
 
 def main():
     try:
+        pd.set_option('expand_frame_repr', False)
+        pd.set_option('display.max_rows', 100)
+        # download_ALL_historical_data()
+        reformate_date_column()
+        """
         for i in range(len(timeframes)):
             df = pd.read_feather(timeframes[i]['file'])
             print("\nResults: " + timeframes[i]['time'])
-            print(func.cleanup_dataframe_for_print(df))
+            print(func.cleanup_dataframe_for_print(df)[950:].head(100))
+        """
 
     except Exception as e:
         print(e)

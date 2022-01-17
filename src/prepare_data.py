@@ -217,10 +217,14 @@ def update_all_columns(timeframes):
 
 def main():
     try:
+        pd.set_option('expand_frame_repr', False)
+        pd.set_option('display.max_rows', 500)
         # update_all_columns(timeframes)
         # df = pd.read_feather(timeframes[0]['file'])
+        # df = calculate_columns_main(df, 0)
+        # df.to_feather(timeframes[0]['file'])
         print("DF original:")
-        # print(cleanup_dataframe_for_print(df))
+        # print(cleanup_dataframe_for_print(df)[9600:].head(100))
 
         # df_test = pd.read_feather(timeframes[0]['file'])
         # df_test = T_.reset_columns(df_test)
@@ -230,10 +234,18 @@ def main():
         # T_.compare_dataframes(df, df_test)
 
         for i in range(len(timeframes)):
-            df = pd.read_feather(timeframes[i]['file'])
-            print("\nResults: " + timeframes[i]['time'])
-            df = cleanup_dataframe_for_print(df)
-            print(df)
+            current_timeframe = timeframes[i]['time']
+            if current_timeframe =="2h":
+                df = pd.read_feather(timeframes[i]['file'])
+                print("\nResults: " + current_timeframe)
+                print(cleanup_dataframe_for_print(df[11600:].head(500)))
+                """
+                for j in range(0, df.shape[0]):
+                    list = str(df.loc[j, "date"]).split()
+                    if list[1] == '02:00:00' or list[1] == '14:00:00':
+                        df.loc[j, "date"] -= timedelta(hours=1)
+                print(cleanup_dataframe_for_print(df[200:]))
+                """
 
 
     except Exception as e:
