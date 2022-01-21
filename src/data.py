@@ -80,7 +80,7 @@ def update_historical_data():
         new_dataframe = create_dataFrame(coin, timeframes[i]['time'], time_of_second_last_row, format_datetime(datetime.now()))
         merged_dataframe = pd.concat([old_dataframe, new_dataframe]).reset_index(drop=True)
         if timeframes[i]['time'] == "1m":
-            print("Skip 1m")
+            print("Skip 1m to calculate data")
         else:
             merged_dataframe = func.calculate_columns_main(merged_dataframe, old_dataframe.shape[0])
         merged_dataframe["id"] = merged_dataframe.index
