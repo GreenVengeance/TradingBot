@@ -8,13 +8,15 @@ from dash import dcc, html, dash_table
 from config.config import timeframes, KPIS_path
 import src.prepare_data as func
 import src.analyse as analyse
+import src.help_functions as h_
+
 from dash.dependencies import Input, Output
 
 
 def get_df(timeframe_label, cols, date_filter=False, date=""):
     current_df = pd.read_feather(timeframe_label)
     if date_filter:
-        current_df = analyse.filter_date(current_df, date)
+        current_df = h_.filter_date(current_df, date)
     current_df['index'] = current_df.reset_index(drop=True).index
     current_df.set_index('index', inplace=True, drop=False)
     current_df[cols] = current_df[cols].round(2)
@@ -33,7 +35,7 @@ for i in range(len(timeframes)):
     current_df = get_df(timeframes[i]['file'], cols_1, date_filter=True, date=day_start)
     if 'id' in current_df.columns:
         current_df.pop('id')
-    dataframes[current_timeframe] = func.cleanup_dataframe_for_print(current_df)
+    dataframes[current_timeframe] = h_.cleanup_dataframe_for_print(current_df)
 
 dataframes_ups = {}
 timeframe_list_ups = []  # ['15m','30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d']

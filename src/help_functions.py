@@ -1,14 +1,12 @@
-# import logging
 # import sys
-# from datetime import datetime, timedelta
+from datetime import datetime, timedelta
 
 import numpy as np
-# import pandas as pd
-from pandas import DataFrame as df
-
-sys.path.append('/Users/AhmedMajid/PycharmProjects/TradingBot')
+# sys.path.append('/...')
 # from config.config import timeframes, KPIS_path, ema_means_path, ema_medians_path
 import src.prepare_data as func
+import pandas as pd
+from pandas import DataFrame as df
 
 
 # ---------------------------------------------------- for prepare_data_py
@@ -222,3 +220,114 @@ def get_WT_EMA_WT_SMA_of_dataframes(matched_date, current_df):
         print(current_df)
     """
     return list
+
+
+def cleanup_dataframe(current_timeframe, main_timeframe):
+    # dataframe['date'] = pd.to_datetime(dataframe['date']).dt.date
+    dataframe = pd.read_feather(current_timeframe['file'])
+
+    if 'open' in dataframe.columns:
+        dataframe.pop('open')
+    if 'high' in dataframe.columns:
+        dataframe.pop('high')
+    if 'low' in dataframe.columns:
+        dataframe.pop('low')
+    if 'volume' in dataframe.columns:
+        dataframe.pop('volume')
+    if 'close_time' in dataframe.columns:
+        dataframe.pop('close_time')
+    if 'trade_number' in dataframe.columns:
+        dataframe.pop('trade_number')
+    if 'asset_volume' in dataframe.columns:
+        dataframe.pop('asset_volume')
+    if 'HA_open' in dataframe.columns:
+        dataframe.pop('HA_open')
+    if 'HA_high' in dataframe.columns:
+        dataframe.pop('HA_high')
+    if 'HA_low' in dataframe.columns:
+        dataframe.pop('HA_low')
+    if 'esa_C' in dataframe.columns:
+        dataframe.pop('esa_C')
+    if 'd_C' in dataframe.columns:
+        dataframe.pop('d_C')
+    if current_timeframe['time'] != main_timeframe:
+        if 'id' in dataframe.columns:
+            dataframe.pop('id')
+        if 'close' in dataframe.columns:
+            dataframe.pop('close')
+        if 'HA_close' in dataframe.columns:
+            dataframe.pop('HA_close')
+        if 'up(+)_down(-)' in dataframe.columns:
+            dataframe.pop('up(+)_down(-)')
+        if '%_run_total' in dataframe.columns:
+            dataframe.pop('%_run_total')
+        if '%of_run' in dataframe.columns:
+            dataframe.pop('%of_run')
+
+    """
+    #dataframe['WT_EMA'] = np.nan
+    #dataframe['a']['WT_SMA'] = np.nan
+    index = pd.MultiIndex.from_product([['30m', '1h'], ['WT_EMA', 'WT_SMA']])
+    print(index)
+    print(len(dataframe.columns))
+    dataframe2 = {}
+    dataframe2["15m"] = dataframe.copy().set_index('id')
+    dataframe2['30min'] = pd.DataFrame(columns=['id', 'WT_EMA', 'WT_SMA'],
+                                             data=(dataframe["id"], dataframe["WT_EMA"], dataframe["WT_SMA"])).set_index('id')
+    print(dataframe2)
+    """
+    return dataframe
+
+
+def filter_date(df, day_start, ONE_DAY=False):
+    filter_date = day_start
+    filter_date = datetime.strptime(filter_date, '%Y-%m-%d %H:%M:%S')
+    if ONE_DAY:
+        df = df[df.date.between(filter_date, (filter_date + timedelta(days=1)))]
+    else:
+        df = df[df['date'] > filter_date]
+    return df
+
+def get_fig(timframe, Long_Short, first_last=""):
+    if Long_Short == "long":
+        color = "green"
+    elif Long_Short == "short":
+        color = "red"
+    else:
+        color = "black"
+
+    if timframe == "15m":
+        x = 15
+    elif timframe == "30m":
+        x = 30
+    elif timframe == "1h":
+        x = 60
+    elif timframe == "2h":
+        x = 120
+    elif timframe == "4h":
+        x = 240
+    elif timframe == "6h":
+        x = 360
+    elif timframe == "8h":
+        x = 480
+    elif timframe == "12h":
+        x = 720
+    elif timframe == "1d":
+        x = 1440
+    elif timframe == "3d":
+        x = 4320
+
+    if first_last == "first":
+        x = 60
+    elif first_last == "last":
+        x -= 60
+
+    return go.Bar(
+        x=[x, 0, 0], y=[timframe],
+        name=Long_Short,
+        orientation='h',
+        marker=dict(
+            color=color,
+            line=dict(color='black', width=3)
+        )
+    )

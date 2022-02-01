@@ -5,11 +5,10 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 from pandas import DataFrame as df
-
-sys.path.append('/.../Project_name/')
 from config.keys import client
 from config.config import coin, timeframes
 import src.prepare_data as func
+import src.help_functions as h_
 
 
 def get_current_BTC():
@@ -159,7 +158,7 @@ def main():
         for i in range(len(timeframes)):
             df = pd.read_feather(timeframes[i]['file'])
             print("\nResults: " + timeframes[i]['time'])
-            print(func.cleanup_dataframe_for_print(df)[950:].head(100))
+            print(h_.cleanup_dataframe_for_print(df)[950:].head(100))
         """
 
     except Exception as e:
