@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append('/Users/AhmedMajid/PycharmProjects/TradingBot')
+sys.path.append('/...')
 import dash
 import pandas as pd
 import plotly.express as px

@@ -2,7 +2,7 @@ import logging
 import sys
 from datetime import datetime, timedelta
 
-sys.path.append('/.../Project_name/')
+sys.path.append('/...')
 from config.config import timeframes
 import src.help_functions as h_
 import numpy as np

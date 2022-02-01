@@ -1,6 +1,75 @@
+# import logging
+# import sys
+# from datetime import datetime, timedelta
+
 import numpy as np
+# import pandas as pd
+from pandas import DataFrame as df
+
+sys.path.append('/Users/AhmedMajid/PycharmProjects/TradingBot')
+# from config.config import timeframes, KPIS_path, ema_means_path, ema_medians_path
+import src.prepare_data as func
 
 
+# ---------------------------------------------------- for prepare_data_py
+def cleanup_dataframe_for_print(dataframe):
+    pd.set_option('expand_frame_repr', False)
+
+    if 'close_time' in dataframe.columns:
+        dataframe.pop('close_time')
+    if 'trade_number' in dataframe.columns:
+        dataframe.pop('trade_number')
+    if 'asset_volume' in dataframe.columns:
+        dataframe.pop('asset_volume')
+    if 'esa_C' in dataframe.columns:
+        dataframe.pop('esa_C')
+    if 'd_C' in dataframe.columns:
+        dataframe.pop('d_C')
+
+    return dataframe
+
+
+def get_initial_EMA_WT(df, i, stop, n):
+    initial = []
+    if i == 9:
+        while i != stop:
+            ap = (df.loc[i, 'high'] + df.loc[i, 'low'] + df.loc[i, 'close']) / 3
+            initial.append(ap)
+            i -= 1
+
+    elif i == 18:
+        while i != stop:
+            ap = (df.loc[i, 'high'] + df.loc[i, 'low'] + df.loc[i, 'close']) / 3
+            esa = df.loc[i, 'esa_C']
+            initial.append(abs(ap - esa))
+            i -= 1
+
+    elif i == 38:
+        while i != stop:
+            ap = (df.loc[i, 'high'] + df.loc[i, 'low'] + df.loc[i, 'close']) / 3
+            esa = df.loc[i, 'esa_C']
+            d = df.loc[i, 'd_C']
+            ci = (ap - esa) / (0.015 * d)
+            initial.append(ci)
+            i -= 1
+
+    if len(initial) == n:
+        initial = np.mean(initial)
+
+    # print("___________Success")
+    return initial
+
+
+def ema(src, ema_previous_day, length):
+    """ Initial EMA --> SMA: SUM(price) / length
+    ema_alternative = (1 - alpha) * ema_previous_day + alpha * src"""
+    alpha = (2 / (length + 1))
+    ema_current = (src - ema_previous_day) * alpha + ema_previous_day
+
+    return ema_current
+
+
+# ----------- for testing dfs
 def reset_columns(df):
     df['HA_open'] = np.nan
     df['HA_high'] = np.nan
@@ -71,15 +140,6 @@ def EMA():
     return df
 
 
-def ema(src, ema_previous_day, length):
-    """ Initial EMA --> SMA: SUM(price) / length
-    ema_alternative = (1 - alpha) * ema_previous_day + alpha * src"""
-    alpha = (2 / (length + 1))
-    ema_current = (src - ema_previous_day) * alpha + ema_previous_day
-
-    return ema_current
-
-
 def get_initial_EMA_WT_HA(df, i, stop, n):
     initial = []
     if i == 9:
@@ -143,9 +203,22 @@ def calculate_indicator_WTwC_HA(df, i):
 
     return df
 
-"""
-df['date'] = pd.to_datetime(df['date']).dt.date
-for i in range(df.index[0], df.shape[0] + df.index[0]):
-    date = df.loc[i, 'date']
-    print(date)
-"""
+
+# ---------------------------------------------------- for analyse.py
+def get_WT_EMA_WT_SMA_of_dataframes(matched_date, current_df):
+    list = [np.nan, np.nan]
+
+    if matched_date <= current_df.iloc[-1]["date"]:
+        current_row_of_matched_df = current_df.loc[current_df["date"] == matched_date].reset_index(drop=True)
+        if not current_row_of_matched_df.empty:
+            WT_EMA = current_row_of_matched_df.loc[0, "WT_EMA"]
+            WT_SMA = current_row_of_matched_df.loc[0, "WT_SMA"]
+            list[0] = WT_EMA
+            list[1] = WT_SMA
+
+    """# to check if current df is alright
+    if np.nan in (list[1], list[0]):
+        print("\n---------------------------matched_date: ", matched_date)
+        print(current_df)
+    """
+    return list
