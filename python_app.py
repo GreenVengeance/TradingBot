@@ -1,11 +1,10 @@
 import sys
 
+sys.path.append('/Users/AhmedMajid/PycharmProjects/TradingBot')
 import dash
 import pandas as pd
 import plotly.express as px
 from dash import dcc, html, dash_table
-
-sys.path.append('/.../Project_name/')
 from config.config import timeframes, KPIS_path
 import src.prepare_data as func
 import src.analyse as analyse
@@ -140,8 +139,6 @@ def create_right_children_list():
     children.append(html.Div(dcc.Graph(id="g1", figure=analyse.create_nested_bar_chart())))
     children.append(html.Div(id='timeseries_output', children=[]))
     children.append(html.Br())
-
-
 
     children.append(html.Div(id='timeseries_ups_output', children=[]))
     children.append(html.Br())
