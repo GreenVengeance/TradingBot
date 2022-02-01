@@ -5,7 +5,8 @@ import pandas as pd
 import plotly.express as px
 from dash import dcc, html, dash_table
 
-from config.config import timeframes
+sys.path.append('/.../Project_name/')
+from config.config import timeframes, KPIS_path
 import src.prepare_data as func
 import src.analyse as analyse
 from dash.dependencies import Input, Output
@@ -29,7 +30,7 @@ for i in range(len(timeframes)):
     current_timeframe = timeframes[i]['time']
     timeframe_list.append(current_timeframe)
     cols_1 = ["open", "high", "low", "close", "volume", "%of_run", "%_run_total",
-            "HA_open", "HA_high", "HA_low", "HA_close", "WT_EMA", "WT_SMA"]
+              "HA_open", "HA_high", "HA_low", "HA_close", "WT_EMA", "WT_SMA"]
     current_df = get_df(timeframes[i]['file'], cols_1, date_filter=True, date=day_start)
     if 'id' in current_df.columns:
         current_df.pop('id')
@@ -42,8 +43,8 @@ for i in range(len(timeframes)):
     if current_timeframe == "15m":
         timeframe_list_ups.append(current_timeframe)
         cols_2 = ["close", "HA_close", "%of_run", "%_run_total", "WT_EMA", "WT_SMA",
-                "30m_WT_EMA", "1h_WT_EMA", "2h_WT_EMA", "4h_WT_EMA", "6h_WT_EMA", "8h_WT_EMA", "12h_WT_EMA", "1d_WT_EMA",
-                "30m_WT_SMA", "1h_WT_SMA", "2h_WT_SMA", "4h_WT_SMA", "6h_WT_SMA", "8h_WT_SMA", "12h_WT_SMA", "1d_WT_SMA"]
+                  "30m_WT_EMA", "1h_WT_EMA", "2h_WT_EMA", "4h_WT_EMA", "6h_WT_EMA", "8h_WT_EMA", "12h_WT_EMA", "1d_WT_EMA",
+                  "30m_WT_SMA", "1h_WT_SMA", "2h_WT_SMA", "4h_WT_SMA", "6h_WT_SMA", "8h_WT_SMA", "12h_WT_SMA", "1d_WT_SMA"]
         master_ups_df = get_df(timeframes[3]['master_file_ups'], cols_2)
 
         dataframes_ups[current_timeframe] = master_ups_df
@@ -133,8 +134,14 @@ def create_right_children_list():
             style={
                 'textAlign': 'center'
             }))
+    children.append(html.H3('--Latest two runs of: 15m_master'))
+    children.append(get_dash_table(analyse.get_last_row_runs_of_master("15m"), "15m_master"))
+    children.append(get_dash_table(pd.read_feather(KPIS_path), "KPIs"))
+    children.append(html.Div(dcc.Graph(id="g1", figure=analyse.create_nested_bar_chart())))
     children.append(html.Div(id='timeseries_output', children=[]))
     children.append(html.Br())
+
+
 
     children.append(html.Div(id='timeseries_ups_output', children=[]))
     children.append(html.Br())
@@ -181,11 +188,10 @@ def update_timeseries(input2, selected_dropdown_value):
                 current_df.pop('d_C')
             timeseries_list.append(get_dash_table(current_df, timeframe))
         else:
-            timeseries_list.append(get_dash_table(dataframes[timeframe], timeframe))
+            current_df = dataframes[timeframe]
+            timeseries_list.append(get_dash_table(current_df, timeframe))
 
     return timeseries_list
-
-
 
 
 @app.callback(Output('timeseries_ups_output', 'children'),
@@ -197,7 +203,6 @@ def update_timeseries_ups(selected_dropdown_value):
         timeseries_list.append(get_dash_table(dataframes_ups[timeframe], timeframe))
 
     return timeseries_list
-
 
 
 def main():

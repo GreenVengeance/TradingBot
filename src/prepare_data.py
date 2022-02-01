@@ -4,6 +4,7 @@ import logging
 from datetime import datetime, timedelta
 import sys
 
+sys.path.append('/.../Project_name/')
 from config.config import timeframes
 import src.T_ as T_
 
@@ -17,8 +18,6 @@ def cleanup_dataframe_for_print(dataframe):
         dataframe.pop('trade_number')
     if 'asset_volume' in dataframe.columns:
         dataframe.pop('asset_volume')
-    if '%of_run' in dataframe.columns:
-        dataframe.pop('%of_run')
     if 'esa_C' in dataframe.columns:
         dataframe.pop('esa_C')
     if 'd_C' in dataframe.columns:

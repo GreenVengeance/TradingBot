@@ -1,10 +1,12 @@
-from pandas import DataFrame as df
-from datetime import datetime, timedelta
-import pandas as pd
-import numpy as np
 import logging
 import sys
+from datetime import datetime, timedelta
 
+import numpy as np
+import pandas as pd
+from pandas import DataFrame as df
+
+sys.path.append('/.../Project_name/')
 from config.keys import client
 from config.config import coin, timeframes
 import src.prepare_data as func
@@ -21,8 +23,8 @@ def get_current_BTC():
 def create_dataFrame(coin, timeframe, start_date, end_date):
     candles = client.get_historical_klines(symbol=coin, interval=timeframe, start_str=start_date, end_str=end_date)
     dataframe = df(candles,
-                   columns=['date', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'asset_volume', 'trade_number',
-                            'taker_buy_base', 'taker_buy_quote', 'can_be_ignored'])
+                   columns=['date', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'asset_volume',
+                            'trade_number', 'taker_buy_base', 'taker_buy_quote', 'can_be_ignored'])
     # cleanup dataframe:
     dataframe.pop('taker_buy_base')
     dataframe.pop('taker_buy_quote')
@@ -114,36 +116,36 @@ def reformate_date_column():
         current_timeframe = timeframes[i]['time']
         if current_timeframe == "1d" or current_timeframe == "12h" or current_timeframe == "8h" \
                 or current_timeframe == "6h" or current_timeframe == "4h" or current_timeframe == "2h":
-            df = pd.read_feather(timeframes[i]['file'])
+            current_df = pd.read_feather(timeframes[i]['file'])
 
-            for j in range(0, df.shape[0]):
-                list = str(df.loc[j, "date"]).split()
+            for j in range(0, current_df.shape[0]):
+                list = str(current_df.loc[j, "date"]).split()
                 if current_timeframe == "1d" and list[1] == '02:00:00':
-                    df.loc[j, "date"] -= timedelta(hours=1)
+                    current_df.loc[j, "date"] -= timedelta(hours=1)
 
                 if current_timeframe == "12h" and (list[1] == '02:00:00' or list[1] == '14:00:00'):
-                    df.loc[j, "date"] -= timedelta(hours=1)
+                    current_df.loc[j, "date"] -= timedelta(hours=1)
 
                 if current_timeframe == "8h" and (list[1] == '02:00:00' or list[1] == '10:00:00' or list[1] == '18:00:00'):
-                    df.loc[j, "date"] -= timedelta(hours=1)
+                    current_df.loc[j, "date"] -= timedelta(hours=1)
 
                 if current_timeframe == "6h" and (
                         list[1] == '02:00:00' or list[1] == '08:00:00' or list[1] == '14:00:00' or list[1] == '20:00:00'):
-                    df.loc[j, "date"] -= timedelta(hours=1)
+                    current_df.loc[j, "date"] -= timedelta(hours=1)
 
                 if current_timeframe == "4h" and (
                         list[1] == '02:00:00' or list[1] == '06:00:00' or list[1] == '10:00:00' or list[1] == '14:00:00' or list[
                     1] == '18:00:00' or list[1] == '22:00:00'):
-                    df.loc[j, "date"] -= timedelta(hours=1)
+                    current_df.loc[j, "date"] -= timedelta(hours=1)
 
                 if current_timeframe == "2h" and (
                         list[1] == '02:00:00' or list[1] == '04:00:00' or list[1] == '06:00:00' or list[1] == '08:00:00' or list[
                     1] == '10:00:00' or list[1] == '12:00:00' or list[1] == '14:00:00' or list[1] == '16:00:00' or list[
                             1] == '18:00:00' or list[1] == '20:00:00' or list[1] == '22:00:00' or list[1] == '00:00:00'):
-                    df.loc[j, "date"] -= timedelta(hours=1)
+                    current_df.loc[j, "date"] -= timedelta(hours=1)
 
+            current_df.to_feather(timeframes[i]['file'])
             print('--Success reformate_date_column for: ' + current_timeframe)
-            df.to_feather(timeframes[i]['file'])
 
 
 def main():
@@ -151,7 +153,8 @@ def main():
         pd.set_option('expand_frame_repr', False)
         pd.set_option('display.max_rows', 100)
         # download_ALL_historical_data()
-        reformate_date_column()
+        # reformate_date_column()
+        update_historical_data()
         """
         for i in range(len(timeframes)):
             df = pd.read_feather(timeframes[i]['file'])

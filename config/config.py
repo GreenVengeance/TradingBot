@@ -1,7 +1,12 @@
 # if True run testing code and if False run real code
 DRYRUN = False
 coin = 'BTCUSDT'
-path = '/YOUR/PATH/OF/PROJECTFOLDER/data/'
+path = '/.../Project_name/data/'
+
+KPIS_path = path + "kpis.feather"
+ema_means_path = path + "ema_means_ups_path.feather"
+ema_medians_path = path + "ema_medians_ups_path.feather"
+
 
 timeframes = [{
     'time': "1h",  # client.KLINE_INTERVAL_1HOUR,
