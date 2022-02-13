@@ -1,16 +1,15 @@
 import sys
-
-sys.path.append('/...')
 import dash
 import pandas as pd
 import plotly.express as px
 from dash import dcc, html, dash_table
+from dash.dependencies import Input, Output
+
+sys.path.append('/...')
 from config.config import timeframes, KPIS_path
 import src.prepare_data as func
 import src.analyse as analyse
 import src.help_functions as h_
-
-from dash.dependencies import Input, Output
 
 
 def get_df(timeframe_label, cols, date_filter=False, date=""):
@@ -43,9 +42,9 @@ for i in range(len(timeframes)):
     current_timeframe = timeframes[i]['time']
     if current_timeframe == "15m":
         timeframe_list_ups.append(current_timeframe)
-        cols_2 = ["close", "HA_close", "%of_run", "%_run_total", "WT_EMA", "WT_SMA",
-                  "30m_WT_EMA", "1h_WT_EMA", "2h_WT_EMA", "4h_WT_EMA", "6h_WT_EMA", "8h_WT_EMA", "12h_WT_EMA", "1d_WT_EMA",
-                  "30m_WT_SMA", "1h_WT_SMA", "2h_WT_SMA", "4h_WT_SMA", "6h_WT_SMA", "8h_WT_SMA", "12h_WT_SMA", "1d_WT_SMA"]
+        cols_2 = ["close", "HA_close", "%of_run", "%_run_total", "WT_EMA", "WT_SMA", "30m_WT_EMA", "30m_WT_SMA",
+                  "1h_WT_EMA", "2h_WT_EMA", "4h_WT_EMA", "6h_WT_EMA", "8h_WT_EMA", "12h_WT_EMA", "1d_WT_EMA",
+                  "1h_WT_SMA", "2h_WT_SMA", "4h_WT_SMA", "6h_WT_SMA", "8h_WT_SMA", "12h_WT_SMA", "1d_WT_SMA"]
         master_ups_df = get_df(timeframes[3]['master_file_ups'], cols_2)
 
         dataframes_ups[current_timeframe] = master_ups_df
@@ -58,95 +57,40 @@ for i in range(len(timeframes)):
         dataframes_ups[current_timeframe] = current_df
 
 
-def get_dash_table(df, string):
-    return dash_table.DataTable(
-        id='datatable_' + string,
-        columns=[
-            {"name": i, "id": i, "deletable": True, "selectable": True, "hideable": True}
-            if i == "id"
-            else {"name": i, "id": i, "deletable": True, "selectable": True}
-            for i in df.columns
-        ],
-        data=df.to_dict('records'),
-        editable=False,
-        filter_action="native",
-        sort_action="native",
-        sort_mode="multi",
-        column_selectable="multi",
-        row_selectable="multi",
-        row_deletable=True,
-        selected_columns=[],
-        selected_rows=[],
-        page_action="native",
-        page_current=0,
-        page_size=10,
-        style_cell={'minWidth': '130px', 'maxWidth': '140px', 'width': '140px', 'color': 'black'},
-        style_header={'backgroundColor': 'lightgrey'},
-        style_cell_conditional=[{
-            'if': {'column_id': c},
-            'textAlign': 'left',
-            'minWidth': '160px'
-        } for c in ['date']],
-        style_data={'whiteSpace': 'normal', 'height': 'auto'},
-        fill_width=False
-    )
-
-
-def get_options(timeframes):
-    dict_list = []
-    for i in timeframes:
-        dict_list.append({'label': i, 'value': i})
-        # dict_list.append({'label': i, 'value': dataframes_ups[i]})
-
-    return dict_list
-
-
 def create_left_children_list():
-    children = []
+    children = [html.H2('BTC - Timeframes'), html.P('''Select a default timeframes:'''),
+                html.Div(children=[dcc.Input(id="input", type="text", placeholder="", debounce=True, value=day_start)]),
+                html.Div(className='div-for-dropdown',
+                         children=[dcc.Dropdown(id='timeframeselector_input',
+                                                options=h_.get_options(timeframe_list),
+                                                multi=True, value=[],
+                                                style={'backgroundColor': '#1E1E1E'},
+                                                className='timeframeselector_input')],
+                         style={'color': '#1E1E1E'}),
+                html.P('''Select timeframes for df_Ups(+):'''),
+                html.Div(className='div-for-dropdown',
+                         children=[dcc.Dropdown(id='timeframeselector_ups_input',
+                                                options=h_.get_options(timeframe_list_ups),
+                                                multi=True, value=[],
+                                                style={'backgroundColor': '#1E1E1E'},
+                                                className='timeframeselector_ups_input')],
+                         style={'color': '#1E1E1E'})]
 
-    children.append(html.H2('BTC - Timeframes'))
-    children.append(html.P('''Select a default timeframes:'''))
-    children.append(html.Div(children=[dcc.Input(id="input2", type="text", placeholder="", debounce=True, value=day_start)]))
-    children.append(html.Div(className='div-for-dropdown',
-                             children=[dcc.Dropdown(id='timeframeselector_input',
-                                                    options=get_options(timeframe_list),
-                                                    multi=True,
-                                                    value=[],
-                                                    style={'backgroundColor': '#1E1E1E'},
-                                                    className='timeframeselector_input')], style={'color': '#1E1E1E'}))
-
-    children.append(html.P('''Select timeframes for df_Ups(+):'''))
-    children.append(html.Div(className='div-for-dropdown',
-                             children=[dcc.Dropdown(id='timeframeselector_ups_input',
-                                                    options=get_options(timeframe_list_ups),
-                                                    multi=True,
-                                                    value=[],
-                                                    style={'backgroundColor': '#1E1E1E'},
-                                                    className='timeframeselector_ups_input')], style={'color': '#1E1E1E'}))
     return children
 
 
 def create_right_children_list():
-    children = []
-
-    children.append(
-        html.H1(
-            children='The One percent -- Dashboard',
-            style={
-                'textAlign': 'center'
-            }))
-    children.append(html.H3('--Latest two runs of: 15m_master'))
-    children.append(get_dash_table(analyse.get_last_row_runs_of_master("15m"), "15m_master"))
-    children.append(get_dash_table(pd.read_feather(KPIS_path), "KPIs"))
-    children.append(html.Div(dcc.Graph(id="g1", figure=analyse.create_nested_bar_chart())))
-    children.append(html.Div(id='timeseries_output', children=[]))
-    children.append(html.Br())
-
-    children.append(html.Div(id='timeseries_ups_output', children=[]))
-    children.append(html.Br())
-
-    children.append(html.Div(id='#1-container'))
-    children.append(html.Div(id='#2-container'))
+    children = [html.H1(
+        children='The One percent -- Dashboard',
+        style={'textAlign': 'center'}),
+        html.H3('--Current KPIs'), h_.get_kpi_table(analyse.merge_KPIsDF_mean_median()),
+        html.H3('--Latest two runs of: 15m_master'),
+        h_.get_dash_table(analyse.get_last_row_runs_of_master("15m"), "15m_master"),
+        html.Div(dcc.Graph(id="g1", figure=analyse.create_nested_bar_chart())),
+        html.Div(id='timeseries_output', children=[]), html.Br(),
+        html.Div(id='timeseries_ups_output', children=[]), html.Br(),
+        # html.Div(id='#1-container'), html.Div(id='#2-container')
+    ]
 
     return children
 
@@ -163,16 +107,16 @@ app.layout = html.Div(children=[html.Div(className='row', children=[
 
 
 @app.callback(Output('timeseries_output', 'children'),
-              Input("input2", "value"),
+              Input("input", "value"),
               [Input('timeframeselector_input', 'value')])
-def update_timeseries(input2, selected_dropdown_value):
+def update_timeseries(input, selected_dropdown_value):
     timeseries_list = []
 
     for timeframe in selected_dropdown_value:
         timeseries_list.append(html.H3('--Dataframe for: ' + timeframe))
-        if input2 != day_start:
+        if input != day_start:
             i = next((index for (index, d) in enumerate(timeframes) if d["time"] == timeframe), None)
-            current_df = get_df(timeframes[i]['file'], cols_1, date_filter=True, date=input2)
+            current_df = get_df(timeframes[i]['file'], cols_1, date_filter=True, date=input)
             if 'id' in current_df.columns:
                 current_df.pop('id')
             if 'close_time' in current_df.columns:
@@ -185,10 +129,10 @@ def update_timeseries(input2, selected_dropdown_value):
                 current_df.pop('esa_C')
             if 'd_C' in current_df.columns:
                 current_df.pop('d_C')
-            timeseries_list.append(get_dash_table(current_df, timeframe))
+            timeseries_list.append(h_.get_dash_table(current_df, timeframe))
         else:
             current_df = dataframes[timeframe]
-            timeseries_list.append(get_dash_table(current_df, timeframe))
+            timeseries_list.append(h_.get_dash_table(current_df, timeframe))
 
     return timeseries_list
 
@@ -199,7 +143,7 @@ def update_timeseries_ups(selected_dropdown_value):
     timeseries_list = []
     for timeframe in selected_dropdown_value:
         timeseries_list.append(html.H3('--Dataframe Ups(+) of: ' + timeframe))
-        timeseries_list.append(get_dash_table(dataframes_ups[timeframe], timeframe))
+        timeseries_list.append(h_.get_dash_table(dataframes_ups[timeframe], timeframe))
 
     return timeseries_list
 
