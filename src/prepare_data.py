@@ -174,7 +174,6 @@ def main():
         # print(h_.cleanup_dataframe_for_print(df_test))
         # h_.compare_dataframes(df, df_test)
 
-
     except Exception as e:
         print(e)
         logging.info(e)

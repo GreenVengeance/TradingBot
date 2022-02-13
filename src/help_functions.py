@@ -1,8 +1,8 @@
 # import sys
 from datetime import datetime, timedelta
-
 import numpy as np
-# sys.path.append('/...')
+import plotly.graph_objects as go
+from dash import dash_table
 # from config.config import timeframes, KPIS_path, ema_means_path, ema_medians_path
 import src.prepare_data as func
 import pandas as pd
@@ -204,15 +204,15 @@ def calculate_indicator_WTwC_HA(df, i):
 
 # ---------------------------------------------------- for analyse.py
 def get_WT_EMA_WT_SMA_of_dataframes(matched_date, current_df):
-    list = [np.nan, np.nan]
+    list = [np.nan, np.nan, np.nan]
 
     if matched_date <= current_df.iloc[-1]["date"]:
         current_row_of_matched_df = current_df.loc[current_df["date"] == matched_date].reset_index(drop=True)
         if not current_row_of_matched_df.empty:
             WT_EMA = current_row_of_matched_df.loc[0, "WT_EMA"]
             WT_SMA = current_row_of_matched_df.loc[0, "WT_SMA"]
-            list[0] = WT_EMA
-            list[1] = WT_SMA
+            id = current_row_of_matched_df.loc[0, "id"]
+            list = [WT_EMA, WT_SMA, id]
 
     """# to check if current df is alright
     if np.nan in (list[1], list[0]):
@@ -251,8 +251,8 @@ def cleanup_dataframe(current_timeframe, main_timeframe):
     if 'd_C' in dataframe.columns:
         dataframe.pop('d_C')
     if current_timeframe['time'] != main_timeframe:
-        if 'id' in dataframe.columns:
-            dataframe.pop('id')
+        # if 'id' in dataframe.columns:
+        # dataframe.pop('id')
         if 'close' in dataframe.columns:
             dataframe.pop('close')
         if 'HA_close' in dataframe.columns:
@@ -287,6 +287,7 @@ def filter_date(df, day_start, ONE_DAY=False):
     else:
         df = df[df['date'] > filter_date]
     return df
+
 
 def get_fig(timframe, Long_Short, first_last=""):
     if Long_Short == "long":
@@ -331,3 +332,176 @@ def get_fig(timframe, Long_Short, first_last=""):
             line=dict(color='black', width=3)
         )
     )
+
+
+def get_matched_date(current_timeframe, date):
+    matched_date = date
+    if current_timeframe == "30m":
+        matched_date = date.ceil(freq="30min")
+    elif current_timeframe == "1h":
+        matched_date = date.ceil(freq=current_timeframe)
+    elif current_timeframe in ("2h", "4h", "6h", "8h", "12h", "1d"):
+        matched_date = ((date - timedelta(hours=1)).ceil(freq=current_timeframe) + timedelta(hours=1))
+
+    return matched_date
+
+
+# ---------------------------------------------------- for python_app.py
+def get_options(timeframes):
+    dict_list = []
+    for i in timeframes:
+        dict_list.append({'label': i, 'value': i})
+        # dict_list.append({'label': i, 'value': dataframes_ups[i]})
+
+    return dict_list
+
+
+def get_dash_table(df, string):
+    return dash_table.DataTable(
+        id='datatable_' + string,
+        columns=[
+            {"name": i, "id": i, "deletable": True, "selectable": True, "hideable": True}
+            if i == "id"
+            else {"name": i, "id": i, "deletable": True, "selectable": True}
+            for i in df.columns
+        ],
+        data=df.to_dict('records'),
+        filter_action="native",
+        sort_action="native",
+        sort_mode="multi",
+        column_selectable="multi",
+        row_selectable="multi",
+        row_deletable=True,
+        page_action="native",
+        page_current=0,
+        page_size=10,
+        style_cell={'minWidth': '130px', 'maxWidth': '140px', 'width': '140px', 'color': 'black'},
+        style_header={'backgroundColor': 'lightgrey'},
+        style_cell_conditional=[{
+            'if': {'column_id': c},
+            'textAlign': 'left', 'minWidth': '160px'
+        } for c in ['date']],
+        style_data={'whiteSpace': 'normal', 'height': 'auto'},
+        fill_width=False
+    )
+
+
+def get_kpi_table(df):
+    return dash_table.DataTable(
+        id='datatable_kpis',
+        columns=[
+            {"name": i, "id": i, "deletable": True, "selectable": True, "hideable": True}
+            if i == "id"
+            else {"name": i, "id": i, "deletable": True, "selectable": True}
+            for i in df.columns
+        ],
+        data=df.to_dict('records'),
+        column_selectable="multi",
+        row_selectable="multi",
+        page_action="native",
+        style_cell={'minWidth': '75px', 'maxWidth': '140px', 'width': '140px', 'color': 'black'},
+        style_header={'backgroundColor': 'lightgrey'},
+        style_cell_conditional=[{
+            'if': {'column_id': c},
+            'textAlign': 'left',
+            'minWidth': '70px'
+        } for c in ["stage", "kind"]],
+        style_data={'whiteSpace': 'normal', 'height': 'auto'},
+        style_data_conditional=[
+            {'if': {'row_index': 3},
+             'backgroundColor': '#3D9970', 'color': 'white'},
+            {'if': {'row_index': 4},
+             'backgroundColor': '#3D9970', 'color': 'white'},
+            {'if': {'row_index': 5},
+             'backgroundColor': '#3D9970', 'color': 'white'},
+            {'if': {'filter_query': '{kind} = "%"', 'column_id': 'kind'},
+             'backgroundColor': '#FF4136', 'color': 'white'}]
+    )
+
+
+# ---------------------------------------------------- for one_percent.py
+# delete later
+def forecast_masterfile_15m():
+    # print(timeframes[6]['time'])
+    master_df = pd.read_feather(timeframes[3]['master_file'])
+    fifteen_min_df = pd.read_feather(timeframes[3]['file'])
+    two_hours_df = pd.read_feather(timeframes[6]['file'])
+
+    last_row_fifteen_min = fifteen_min_df[fifteen_min_df.shape[0] - 1:].reset_index(drop=True)
+    last_row_fifteen_min.loc[0, "id"] = "x"
+    for i in range(len(timeframes)):
+        current_timeframe = timeframes[i]['time']
+        if current_timeframe not in ("1m", "3m", "5m", "15m"):
+            current_df = pd.read_feather(timeframes[i]['file'])
+            date = h_.get_matched_date(current_timeframe, last_row_fifteen_min.loc[0, "date"])
+            if date != current_df.loc[current_df.shape[0] - 1, "date"]:
+                current_df = pd.concat([current_df, last_row_fifteen_min]).reset_index(drop=True)
+
+                if current_timeframe == "3d":
+                    current_df.loc[current_df.shape[0] - 1, "date"] = current_df.loc[
+                                                                          current_df.shape[0] - 2, "date"] + timedelta(
+                        days=3)
+                elif current_timeframe == "1w":
+                    current_df.loc[current_df.shape[0] - 1, "date"] = current_df.loc[
+                                                                          current_df.shape[0] - 2, "date"] + timedelta(
+                        weeks=1)
+                elif current_timeframe == "1M":
+                    current_df.loc[current_df.shape[0] - 1, "date"] = current_df.loc[
+                                                                          current_df.shape[0] - 2, "date"] + timedelta(
+                        days=31)
+                else:
+                    current_df.loc[current_df.shape[0] - 1, "date"] = date
+            print("\ndf for :" + current_timeframe)
+            print(h_.cleanup_dataframe_for_print(current_df.tail(5)))
+
+    print("\nMaster:")
+    # print(master_df.tail(40))
+
+    # two_hours_df = add_new_row_to_df(two_hours_df, current_row_fifteen_min)
+    print("\n2h NEW:")
+    # print(h_.cleanup_dataframe_for_print(two_hours_df.tail(7)))
+
+
+# delete later
+def add_new_row_to_df(current_df, current_rows):
+    for j in range(len(current_df) - 1, -1, -1):
+        if current_df.loc[j, "date"] < current_rows.loc[0, "date"]:
+            current_df = current_df[:j + 1]
+            break
+
+    merged_df = current_df.copy()
+    merged_df_two = current_df.copy()
+    for i in range(current_rows.shape[0]):
+        current_row = current_rows[:i + 1][i:]
+        if i == (current_rows.shape[0] - 1) \
+                or current_row.loc[i, "date"] == merged_df.loc[merged_df.shape[0] - 1, "date"] + timedelta(hours=2):
+            merged_df = pd.concat([merged_df, current_row]).reset_index(drop=True)
+
+    merged_df = func.calculate_columns_main(merged_df, current_df.shape[0] - 1)
+
+    print("\n2h NEW:")
+    print(h_.cleanup_dataframe_for_print(merged_df).tail(7))
+
+    high = 0
+    low = 0
+    for i in range(current_rows.shape[0]):
+        current_row = current_rows[:i + 1][i:]
+
+        if high < current_row.loc[i, "high"]:
+            high = current_row.loc[i, "high"]
+        if low > current_row.loc[i, "low"] or low == 0:
+            low = current_row.loc[i, "low"]
+
+        if i == (current_rows.shape[0] - 1) or current_row.loc[i, "date"] == merged_df_two.loc[
+            merged_df_two.shape[0] - 1, "date"] + timedelta(hours=2):
+            current_row.loc[i, "high"] = high
+            current_row.loc[i, "low"] = low
+            merged_df_two = pd.concat([merged_df_two, current_row]).reset_index(drop=True)
+            high = 0
+            low = 0
+    merged_df_two = func.calculate_columns_main(merged_df_two, current_df.shape[0] - 1)
+
+    print("\n2h NEW_2:")
+    print(h_.cleanup_dataframe_for_print(merged_df_two).tail(7))
+
+    return merged_df

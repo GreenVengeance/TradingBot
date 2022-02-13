@@ -1,10 +1,11 @@
 import logging
 import sys
 from datetime import datetime, timedelta
-
 import numpy as np
 import pandas as pd
 from pandas import DataFrame as df
+
+sys.path.append('/...')
 from config.keys import client
 from config.config import coin, timeframes
 import src.prepare_data as func
@@ -74,20 +75,54 @@ def download_ALL_historical_data():
 def update_historical_data():
     second_last_row = -2
     for i in range(len(timeframes)):
+        timeframe = timeframes[i]['time']
         old_dataframe = pd.read_feather(timeframes[i]['file'])
+        if old_dataframe.loc[old_dataframe.shape[0] - 1, "id"] == 0:
+            old_dataframe = old_dataframe[:-1]
+
         time_of_second_last_row = format_datetime(old_dataframe['date'].iloc[second_last_row])
 
         old_dataframe = old_dataframe[:second_last_row]
-        new_dataframe = create_dataFrame(coin, timeframes[i]['time'], time_of_second_last_row, format_datetime(datetime.now()))
+        new_dataframe = create_dataFrame(coin, timeframe, time_of_second_last_row, format_datetime(datetime.now()))
         merged_dataframe = pd.concat([old_dataframe, new_dataframe]).reset_index(drop=True)
-        if timeframes[i]['time'] == "1m":
-            print("Skip 1m to calculate data")
-        else:
+
+        if timeframe != "1m":
             merged_dataframe = func.calculate_columns_main(merged_dataframe, old_dataframe.shape[0])
         merged_dataframe["id"] = merged_dataframe.index
-
         merged_dataframe.to_feather(timeframes[i]['file'])
-        print('--Success update_historical_data for: ' + timeframes[i]['time'])
+        print('--Success update_historical_data for: ' + timeframe)
+
+
+def forecast_timeframes():
+    for i in range(len(timeframes)):
+        current_timeframe = timeframes[i]['time']
+        if current_timeframe == "15m":
+            fifteen_min_df = pd.read_feather(timeframes[i]['file'])
+            last_row_fifteen_min = fifteen_min_df[fifteen_min_df.shape[0] - 1:].reset_index(drop=True)
+            last_row_fifteen_min.loc[0, "id"] = 0
+
+        if current_timeframe not in ("1m", "3m", "5m", "15m"):
+            current_df = pd.read_feather(timeframes[i]['file'])
+            if current_df.loc[current_df.shape[0] - 1, "id"] == 0:
+                current_df = current_df[:-1]
+            date = h_.get_matched_date(current_timeframe, last_row_fifteen_min.loc[0, "date"])
+            last_row = current_df.shape[0] - 1
+            if date != current_df.loc[last_row, "date"]:
+                current_df = pd.concat([current_df, last_row_fifteen_min]).reset_index(drop=True)
+                last_row = current_df.shape[0] - 1
+                if current_timeframe == "3d":
+                    current_df.loc[last_row, "date"] = current_df.loc[last_row - 1, "date"] + timedelta(days=3)
+                elif current_timeframe == "1w":
+                    current_df.loc[last_row, "date"] = current_df.loc[last_row - 1, "date"] + timedelta(weeks=1)
+                elif current_timeframe == "1M":
+                    current_df.loc[last_row, "date"] = current_df.loc[last_row - 1, "date"] + timedelta(days=31)
+                else:
+                    current_df.loc[last_row, "date"] = date
+
+            current_df = func.calculate_columns_main(current_df, last_row - 1)
+            current_df.to_feather(timeframes[i]['file'])
+            print("\n--Success forecasted last row for :" + current_timeframe)
+            # print(h_.cleanup_dataframe_for_print(current_df).tail(5))
 
 
 def update_historical_data_reverse(day):
@@ -125,22 +160,25 @@ def reformate_date_column():
                 if current_timeframe == "12h" and (list[1] == '02:00:00' or list[1] == '14:00:00'):
                     current_df.loc[j, "date"] -= timedelta(hours=1)
 
-                if current_timeframe == "8h" and (list[1] == '02:00:00' or list[1] == '10:00:00' or list[1] == '18:00:00'):
+                if current_timeframe == "8h" and (
+                        list[1] == '02:00:00' or list[1] == '10:00:00' or list[1] == '18:00:00'):
                     current_df.loc[j, "date"] -= timedelta(hours=1)
 
                 if current_timeframe == "6h" and (
-                        list[1] == '02:00:00' or list[1] == '08:00:00' or list[1] == '14:00:00' or list[1] == '20:00:00'):
+                        list[1] == '02:00:00' or list[1] == '08:00:00' or
+                        list[1] == '14:00:00' or list[1] == '20:00:00'):
                     current_df.loc[j, "date"] -= timedelta(hours=1)
 
                 if current_timeframe == "4h" and (
-                        list[1] == '02:00:00' or list[1] == '06:00:00' or list[1] == '10:00:00' or list[1] == '14:00:00' or list[
-                    1] == '18:00:00' or list[1] == '22:00:00'):
+                        list[1] == '02:00:00' or list[1] == '06:00:00' or list[1] == '10:00:00' or
+                        list[1] == '14:00:00' or list[1] == '18:00:00' or list[1] == '22:00:00'):
                     current_df.loc[j, "date"] -= timedelta(hours=1)
 
                 if current_timeframe == "2h" and (
-                        list[1] == '02:00:00' or list[1] == '04:00:00' or list[1] == '06:00:00' or list[1] == '08:00:00' or list[
-                    1] == '10:00:00' or list[1] == '12:00:00' or list[1] == '14:00:00' or list[1] == '16:00:00' or list[
-                            1] == '18:00:00' or list[1] == '20:00:00' or list[1] == '22:00:00' or list[1] == '00:00:00'):
+                        list[1] == '02:00:00' or list[1] == '04:00:00' or list[1] == '06:00:00' or
+                        list[1] == '08:00:00' or list[1] == '10:00:00' or list[1] == '12:00:00' or
+                        list[1] == '14:00:00' or list[1] == '16:00:00' or list[1] == '18:00:00' or
+                        list[1] == '20:00:00' or list[1] == '22:00:00' or list[1] == '00:00:00'):
                     current_df.loc[j, "date"] -= timedelta(hours=1)
 
             current_df.to_feather(timeframes[i]['file'])
@@ -153,13 +191,16 @@ def main():
         pd.set_option('display.max_rows', 100)
         # download_ALL_historical_data()
         # reformate_date_column()
-        update_historical_data()
-        """
+        # update_historical_data()
+
         for i in range(len(timeframes)):
-            df = pd.read_feather(timeframes[i]['file'])
-            print("\nResults: " + timeframes[i]['time'])
-            print(h_.cleanup_dataframe_for_print(df)[950:].head(100))
-        """
+            if timeframes[i]['time'] in ('2h',):
+                current_df = pd.read_feather(timeframes[i]['file'])
+                print("\nResults: " + timeframes[i]['time'])
+                print(h_.cleanup_dataframe_for_print(current_df))
+                print("\nResults2: " + timeframes[i]['time'])
+                print(current_df.loc[current_df.shape[0] - 1, "id"])
+                print(current_df.loc[-1, "id"])
 
     except Exception as e:
         print(e)
